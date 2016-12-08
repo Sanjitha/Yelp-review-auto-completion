@@ -1,11 +1,12 @@
+setwd("C:/Users/Sanju/Google Drive/Semester3/FDS/Project/Final")
+
 source('ExternalLibraries.R')
 source('SmoothingBackOffUtils.R')
-setwd("C:/Users/Sanju/Google Drive/Semester3/FDS/Project")
+source('TopicModellingLDAUtils.R')
 
 
 print(paste("Read the processed file."))
 data <- read_delim("processed.csv",delim= "~", col_names=c("date", "stars", "user_id", "review_id", "business_id", "text"))
-
 
 print(paste("Get the highest restuarant and user review."))
 businessReviews <- data.frame(count(data,vars = c("business_id", "user_id")))
@@ -95,8 +96,75 @@ quadGramSmoothedData <- data.table(paste(quadGram$word1, quadGram$word2, quadGra
 names(quadGramSmoothedData) <- c("term", "nextTerm", "frequency", "probability")
 
 
+
+
+businessData.uniGramDTMTfIdf <- t(businessData.uniGramDTMTfIdf)
+businessData.biGramDTMTfIdf <- t(businessData.biGramDTMTfIdf)
+businessData.triGramDTMTfIdf <- t(businessData.triGramDTMTfIdf)
+businessData.quadGramDTMTfIdf <- t(businessData.quadGramDTMTfIdf)
+
+buisness.uniGram.lda <- generateTopicModellingUsingLDA(businessData.uniGramDTMTfIdf,10)
+buisness.biGram.lda <- generateTopicModellingUsingLDA(as.matrix(businessData.biGramDTMTfIdf),10)
+buisness.triGram.lda <- generateTopicModellingUsingLDA(businessData.triGramDTMTfIdf,10)
+buisness.quadGram.lda <- generateTopicModellingUsingLDA(businessData.quadGramDTMTfIdf,10)
+
+showTopicProbabilities(buisness.uniGram.lda@gamma)
+showTopicProbabilities(buisness.biGram.lda@gamma)
+showTopicProbabilities(buisness.triGram.lda@gamma)
+showTopicProbabilities(buisness.quadGram.lda@gamma)
+
+uni.topicMeanProbabDF <- calculateTopicProbabilityAcrossAllDocuments(buisness.uniGram.lda@gamma)
+bi.topicMeanProbabDF <- calculateTopicProbabilityAcrossAllDocuments(buisness.biGram.lda@gamma)
+tri.topicMeanProbabDF <- calculateTopicProbabilityAcrossAllDocuments(buisness.triGram.lda@gamma)
+quad.topicMeanProbabDF <- calculateTopicProbabilityAcrossAllDocuments(buisness.quadGram.lda@gamma)
+
+uni.termLDAProbability <- assignTermLdaProbability(buisness.uniGram.lda,uni.topicMeanProbabDF)
+bi.termLDAProbability <- assignTermLdaProbability(buisness.biGram.lda,bi.topicMeanProbabDF)
+tri.termLDAProbability <- assignTermLdaProbability(buisness.triGram.lda,tri.topicMeanProbabDF)
+quad.termLDAProbability <- assignTermLdaProbability(buisness.quadGram.lda,quad.topicMeanProbabDF)
+
+uni.combinedProb <- mergeProbability(uni.termLDAProbability,uniGramSmoothedData)
+names(uni.combinedProb) <- c("nextTerm", "frequency", "smoothedProbability","ldaProbability","probability")
+
+bi.combinedProb <- mergeProbability(bi.termLDAProbability,biGramSmoothedData)
+names(bi.combinedProb) <- c("term","nextTerm","frequency", "smoothedProbability","wholeTerm","ldaProbability","probability")
+
+tri.combinedProb <- mergeProbability(tri.termLDAProbability,triGramSmoothedData)
+names(tri.combinedProb) <- c("term","nextTerm","frequency", "smoothedProbability","wholeTerm","ldaProbability","probability")
+
+quad.combinedProb <- mergeProbability(quad.termLDAProbability,quadGramSmoothedData)
+names(quad.combinedProb) <- c("term","nextTerm","frequency", "smoothedProbability","wholeTerm","ldaProbability","probability")
+
+
+
 predictionGiven2Words("my wife")
 predictionGiven3Words("my wife ordered")
+predictionGiven0Word("my wife ordered")
+
+#Evaluation
+
+#Cosine 
+predictedText = "My wife had chicken tenders that was extremely tasty.Tonight the restaurant was almost fully crowded."
+for(i in 1 : length(testData$text)) {
+  eachRow <- testData$text[i]
+  tdm <- generateTermDocumentMatrix(c(predictedText,eachRow),1)
+  tdm.matrix <- as.matrix(tdm)
+  cosine <- cosine(tdm.matrix[,1],tdm.matrix[,2])
+  cat("Cosine similarity between two documents ",cosine,"\n")
+}
+
+#Jaccard
+predictedText = "My wife had chicken tenders that was extremely tasty.Tonight the restaurant was almost fully crowded."
+for(i in 1 : length(testData$text)) {
+  eachRow <- testData$text[i]
+  tdm <- generateTermDocumentMatrix(c(predictedText,eachRow),1)
+  tdm.matrix <- as.matrix(tdm)
+  jaccard <- cluster_similarity(tdm.matrix[,1], tdm.matrix[,2], similarity = "jaccard",method = "independence")
+  cat("Jaccard similarity between two documents ",jaccard,"\n")
+}
+
+
+
 
 
 

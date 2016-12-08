@@ -169,10 +169,6 @@ getLastTerms = function(inputString,num){
   # Now, ready!
   words = unlist(strsplit(inputString, " "))
   
-  #if (length(words) < num){
-  #  stop("Number of Last Terms: Insufficient!")
-  #}
-  
   from = length(words)-num+1
   to = length(words)
   tempWords = words[from:to]
@@ -193,9 +189,7 @@ predictionGiven3Words = function(inputString){
   
   inputSplit.last3Words <- getLastTerms(inputString,3)
   
-  print(paste(inputSplit.last3Words))
-  
-  quadGram.termsMatch = quadGramSmoothedData[term == inputSplit.last3Words]
+  quadGram.termsMatch = quad.combinedProb[term == inputSplit.last3Words]
   if (nrow(quadGram.termsMatch) > 0){
     return(quadGram.termsMatch[order(quadGram.termsMatch$probability, decreasing = TRUE),])
   } else {
@@ -220,9 +214,7 @@ predictionGiven2Words = function(inputString){
   
   inputSplit.last2Words <- getLastTerms(inputString,2)
   
-  print(paste(inputSplit.last2Words))
-  
-  triGram.termsMatch = triGramSmoothedData[term == inputSplit.last2Words]
+  triGram.termsMatch = tri.combinedProb[term == inputSplit.last2Words]
   if (nrow(triGram.termsMatch) > 0){
     return(triGram.termsMatch[order(triGram.termsMatch$probability, decreasing = TRUE),])
   } else {
@@ -242,7 +234,7 @@ predictionGiven1Word = function(inputString){
     return(predictionGiven0Word(inputString))
   }
   inputSplit.last1Words <- getLastTerms(inputString,1)
-  biGram.termsMatch = biGramSmoothedData[term == inputSplit.last1Words]
+  biGram.termsMatch = bi.combinedProb[term == inputSplit.last1Words]
   if (nrow(biGram.termsMatch) > 0){
     return(biGram.termsMatch[order(biGram.termsMatch$probability, decreasing = TRUE),])
   }
@@ -252,7 +244,7 @@ predictionGiven1Word = function(inputString){
 }
 
 predictionGiven0Word = function(inputString){
-  orderedOutput <- uniGramSmoothedData[order(uniGramSmoothedData$probability, decreasing = TRUE),]
+  orderedOutput <- uni.combinedProb[order(uni.combinedProb$probability, decreasing = TRUE),]
   if (nrow(orderedOutput) > 0){
     return(orderedOutput)
   } else {
