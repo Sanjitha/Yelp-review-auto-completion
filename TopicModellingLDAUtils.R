@@ -81,10 +81,19 @@ assignTermLdaProbability <- function(ldaModel,meanOrderedProbabDF) {
   oldDT <- data.table()
   for(i in 1:nrow(meanOrderedProbabDF)) {
     row <- meanOrderedProbabDF[i,]
-    cat("Topic",row$numb,"\n")
     topicTerms <- as.vector(topTermsPerTopic[[row$numb]])
-    newDT <- data.table(terms=topicTerms,ldaProbability=(row$probab))
-    oldDT <- rbind.fill(oldDT,newDT)
+    for(term in topicTerms) {
+      newDT <- data.table(terms=term,ldaProbability=(row$probab))
+      if(nrow(oldDT) == 0) {
+        oldDT <- rbind.fill(oldDT,newDT)
+      } else {
+        duplicateTerms <- subset(oldDT,terms == term)
+        duplicateTerms
+        if(nrow(duplicateTerms) == 0) {
+          oldDT <- rbind.fill(oldDT,newDT)
+        }
+      }
+    }
   }
   return(oldDT)
 }
