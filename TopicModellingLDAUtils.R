@@ -15,7 +15,6 @@ generateTopicModellingUsingLDA <- function (nGramMatrix,k) {
   nstart <- 5
   best <- TRUE
   
-  print(paste("Number of topics : 3"))
   k <- k
   
   print(paste("Run LDA using Gibbs sampling"))
@@ -88,7 +87,6 @@ assignTermLdaProbability <- function(ldaModel,meanOrderedProbabDF) {
         oldDT <- rbind.fill(oldDT,newDT)
       } else {
         duplicateTerms <- subset(oldDT,terms == term)
-        duplicateTerms
         if(nrow(duplicateTerms) == 0) {
           oldDT <- rbind.fill(oldDT,newDT)
         }
@@ -103,30 +101,16 @@ mergeProbability <- function(ldaDT,smoothedDT) {
   
   if("nextTerm" %in% colnames(smoothedDT))
   {
-    print("Not a 1-gram\n")
     smoothedDT$wholeTerm = paste(smoothedDT$term, smoothedDT$nextTerm, sep=" ")
-    
-    
-    # set the ON clause as keys of the tables:
-    setkey(as.data.table(ldaDT),terms)
-    setkey(smoothedDT,wholeTerm)
-    
-    # perform the join, eliminating not matched rows from Right
-    combinedDT <- smoothedDT[ldaDT, nomatch=0]
-    
-    combinedDT$mean=rowMeans(combinedDT[,c("probability", "ldaProbability")], na.rm=TRUE)
-  } else {
-    print("N =  1\n");
-    # set the ON clause as keys of the tables:
-    setkey(as.data.table(ldaDT),terms)
-    setkey(smoothedDT,term)
-    
-    # perform the join, eliminating not matched rows from Right
-    combinedDT <- smoothedDT[ldaDT, nomatch=0]
-    
-    combinedDT$mean=rowMeans(combinedDT[,c("probability", "ldaProbability")], na.rm=TRUE)
-    
-  }
+  }  
+  # merge the two data frames based on terms in lda and whole terms in back-off
+  setkey(as.data.table(ldaDT),terms)
+  setkey(smoothedDT,wholeTerm)
+  
+  # perform the join, eliminating not matched rows from Right
+  combinedDT <- smoothedDT[ldaDT, nomatch=0]
+  
+  combinedDT$mean=rowMeans(combinedDT[,c("probability", "ldaProbability")], na.rm=TRUE)
   return(combinedDT)
 }
 
