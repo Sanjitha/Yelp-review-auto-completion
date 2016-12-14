@@ -789,6 +789,7 @@ names(quad.combinedProb) <- c("term","nextTerm","frequency", "smoothedProbabilit
 ```{r}
 # Predicted text from Auto-complete tool
 predictedText = "My wife had chicken tenders that was extremely tasty.Tonight the restaurant was almost fully crowded."
+
 doc = c(1:length(testData$text))
 similarity_index = c()
 for(i in 1 : length(testData$text)) {
