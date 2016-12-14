@@ -77,4 +77,3 @@ shinyServer = (function(input, output) {
 
 
 shinyApp(ui=shinyUI, server = shinyServer)
-
