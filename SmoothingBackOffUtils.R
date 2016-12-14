@@ -1,4 +1,11 @@
 stemming <- function(text) {
+  #Takes a vector of reviews from businessUserData
+  #
+  #Args: 
+  # text: vector of reviews
+  #Returns:
+  # afterStemText: vector of reviews after stemming
+  
   #vector of words
   List <- strsplit(text, " ")
   Words=unlist(List)
@@ -21,12 +28,23 @@ stemming <- function(text) {
       f = c(f,stemCompleteDocCorpus[[i]])
       stemText[i] = paste(f, collapse=" ")
     }
+    # Review stored in vector after stemming
     afterStemText[k] = stemText[length(stemText)]
   }
   return(afterStemText)
 }
 
+
 generateTermDocumentMatrix <- function(reviews, ng) {
+  #Takes a vector of reviews from businessUserData and n-gram size
+  #
+  #Args: 
+  # reviews: vector of reviews (after stemming)
+  # ng: n-gram size
+  #Returns:
+  # doctm: term document matrix for n-grams
+  
+  #create a corpus (a collection of documents)
   docCorpus <- Corpus(VectorSource(reviews))
   #remove url
   removeURL <- function(x) gsub('http.*\\s*', '', x)
@@ -41,8 +59,11 @@ generateTermDocumentMatrix <- function(reviews, ng) {
   docCorpus <- tm_map(docCorpus, stripWhitespace)
   
   options(mc.cores=1) 
-  ngramTokenizer <- function(x) RWeka::NGramTokenizer(x, Weka_control(min = ng, max = ng)) # create n-grams
-  doctm <- TermDocumentMatrix(docCorpus, control = list(tokenize = ngramTokenizer)) # create Document Term Matrix
+  #prepare tokens of size 'n'
+  ngramTokenizer <- function(x) RWeka::NGramTokenizer(x, Weka_control(min = ng, max = ng)) 
+  #term document matrix for n-grams
+  doctm <- TermDocumentMatrix(docCorpus, control = list(tokenize = ngramTokenizer)) 
+  #return Term Document Matrix
   return(doctm)
 }
 
@@ -60,34 +81,53 @@ calculateTfidf=function(mat){
   return(tfidf)
 }
 
+
+# Function to trim a string
 trim <- function( x ) {
+  #Takes a string
+  #
+  #Args: 
+  # x: string
+  #Returns:
+  # string after trim
+  
   gsub("(^[[:space:]]+|[[:space:]]+$)", "", x)
 }
 
+# Function to get last word of a sentence
 lastWord <- function(sentence) {
+  #Takes a sentence as input
+  #
+  #Args: 
+  # sentence: string
+  #Returns:
+  # last word of the sentence
+  
   return(word(sentence,-1))
 }
 
+# Function to return firstwords (all except last word)
 firstWords <- function(sentence) {
+  #Takes a sentence as input
+  #
+  #Args: 
+  # sentence: string
+  #Returns:
+  # all word except the last word of the sentence as a string
+  
   return(word(sentence,start=1,end=-2))
-  #return(gsub('([[:punct:]])|\\s+','_',tmp))
 }
 
 
 
-##########################################################################################################
-# Now we make extended 3-gram table with Discount column and Remaining Probabilities.
-# Apply the formula:
-# d = r* / r = ((r+1)/r)(n_(r+1)/n_r)
-# For example, for frequency = 5, d = (6/5) * (N6/N5)
-# N5: number of 3-grams that have frequency of 5.
-# Supposed: in 3-gram, only these 3-grams appear 5 times:
-#           A-B-C     5 times
-#           A-B-E     5 times
-#           X-Y-Z     5 times
-#           L-M-N     5 times
-# ==> we have N5 = 4
 KNSmoothing = function(dt, n){
+  # Takes a data table and n-gram size as input
+  #
+  # Args: 
+  #    dt: a data table with term, nextTerm and frequency
+  #    n:  the n-gram size 
+  # Returns:
+  #    dt: data table with smoothed probabilities
   
   col <- colnames(dt)
   col <- col[1:n]
@@ -163,87 +203,127 @@ KNSmoothing = function(dt, n){
 
 
 getLastTerms = function(inputString,num){
+  # Takes a string and number of terms to be returned
+  #
+  # Args:
+  # inputString: string
+  # num: number of last terms to be returned
+  # Returns:
+  # prints last 'num' terms
+  
   # Preprocessing
   inputString = gsub("[[:space:]]+", " ", str_trim(tolower(inputString)))
   
-  # Now, ready!
   words = unlist(strsplit(inputString, " "))
-  
   from = length(words)-num+1
   to = length(words)
   tempWords = words[from:to]
-  
   paste(tempWords, collapse=" ")
 }
 
 predictionGiven3Words = function(inputString){
+  # Takes a string as input
+  #
+  # Args:
+  # inputString: string
+  # Returns:
+  # matrix with term, nextTerm, frequency, smoothedProbability, wholeTerm, ldaProbability, probability
+  
   # Preprocessing
   inputString = gsub("[[:space:]]+", " ", str_trim(tolower(inputString)))
-  
-  # Now, ready!
   words = unlist(strsplit(inputString, " "))
   
+  # If number of words is less than 3 then calls predictionGiven2Words
   if (length(words) < 3){
     return(predictionGiven2Words(inputString))
   }
-  
+  # Call to get last 3 terms if number of words is >=3
   inputSplit.last3Words <- getLastTerms(inputString,3)
-  
+  # Matches the words with quad-grams
   quadGram.termsMatch = quad.combinedProb[term == inputSplit.last3Words]
+  # If there is a match
   if (nrow(quadGram.termsMatch) > 0){
+    # returns a matrix with term, nextTerm, frequency of occurrence, smoothedProbability, wholeTerm, ldaProbability and probability
     return(quadGram.termsMatch[order(quadGram.termsMatch$probability, decreasing = TRUE),])
-  } else {
+  }
+  # If there is no match
+  else {
     return(predictionGiven2Words(inputString))
   }
 }
 
-
-
-
 predictionGiven2Words = function(inputString){
+  # Takes a string as input
+  #
+  # Args:
+  # inputString: string
+  # Returns:
+  # matrix with term, nextTerm, frequency, smoothedProbability, wholeTerm, ldaProbability, probability
+  
   # Preprocessing
   inputString = gsub("[[:space:]]+", " ", str_trim(tolower(inputString)))
-  
-  # Now, ready!
   words = unlist(strsplit(inputString, " "))
   
+  # If number of words is less than 2 then calls predictionGiven1Word
   if (length(words) < 2){
     predictionGiven1Word(inputString)
     return
   }
-  
+  # Call to get last 2 terms if number of words is >=2
   inputSplit.last2Words <- getLastTerms(inputString,2)
-  
+  # Matches the words with tri-grams
   triGram.termsMatch = tri.combinedProb[term == inputSplit.last2Words]
+  # If there is a match
   if (nrow(triGram.termsMatch) > 0){
+    # returns a matrix with term, nextTerm, frequency of occurrence, smoothedProbability, wholeTerm, ldaProbability and probability
     return(triGram.termsMatch[order(triGram.termsMatch$probability, decreasing = TRUE),])
-  } else {
+  }
+  # If there is no match
+  else {
     return(predictionGiven1Word(inputString))
   }
 }
 
 
 predictionGiven1Word = function(inputString){
+  # Takes a string as input
+  #
+  # Args:
+  # inputString: string
+  # Returns:
+  # matrix with term, nextTerm, frequency, smoothedProbability, wholeTerm, ldaProbability, probability
+  
   # Preprocessing
   inputString = gsub("[[:space:]]+", " ", str_trim(tolower(inputString)))
-  
-  # Now, ready!
   words = unlist(strsplit(inputString, " "))
   
+  # If number of words is less than 1 then calls predictionGiven0Word
   if (length(words) < 1){
     return(predictionGiven0Word(inputString))
   }
+  # Call to get last term if number of words is >=1
   inputSplit.last1Words <- getLastTerms(inputString,1)
+  # Matches the words with bi-grams
   biGram.termsMatch = bi.combinedProb[term == inputSplit.last1Words]
+  # If there is a match
   if (nrow(biGram.termsMatch) > 0){
+    # returns a matrix with term, nextTerm, frequency of occurrence, smoothedProbability, wholeTerm, ldaProbability and probability
     return(biGram.termsMatch[order(biGram.termsMatch$probability, decreasing = TRUE),])
   }
+  # If there is no match
   else {
     return(predictionGiven0Word(inputString))
   }
 }
 
 predictionGiven0Word = function(inputString){
+  # Takes a string as input
+  #
+  # Args:
+  # inputString: string
+  # Returns:
+  # uni-grams sorted according to probability
+  
   orderedOutput <- uni.combinedProb[order(uni.combinedProb$probability, decreasing = TRUE),]
   if (nrow(orderedOutput) > 0){
     return(orderedOutput)
