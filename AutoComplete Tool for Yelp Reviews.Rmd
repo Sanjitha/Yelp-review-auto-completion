@@ -610,6 +610,9 @@ data <- read_delim("processed.csv",delim= "~", col_names=c("date", "stars", "use
 
 # Get the total number of reviews for the restuarant Ihop (restaurant with highest number of reviews) and user with highest number of reviews
 businessUserData <- data[which( data$business_id=="T1jYZFB_7cqdhuvzpxfFWQ" | data$user_id=="q200TCFOheJfS_MvvwMfJw" ),]
+
+# Due to limitation on size, the processed.csv is filtered on business_id and user_id
+businessUserData <- read_delim("processed.csv",delim= "~", col_names=c("date", "stars", "user_id", "review_id", "business_id", "text"))
 ```
 
 #### <br/><br/>Division of data into training and test sets
